@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Modal with Data Table</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Navigation Bar with ADD button -->
+    <nav class="navbar">
+        <div class="nav-content">
+
+            <button id="addBtn" class="btn">ADD</button>
+        </div>
+    </nav>
+
+    <!-- Modal Structure -->
+    <div id="formModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add Item</h2>
+            <form id="addForm">
+                <label for="price">Price:</label>
+                <input type="number" id="price" name="price" required>
+
+                <label for="payment">Payment Method:</label>
+                <select id="payment" name="payment" required>
+                    <option value="cash">Cash</option>
+                    <option value="upi">UPI</option>
+                    <option value="credit_card">Credit Card</option>
+                </select>
+
+                <label for="selectDate">Select Date:</label>
+                <input type="date" id="selectDate" name="selectDate" required>
+
+                <label for="location">Location (Optional):</label>
+                <input type="text" id="location" name="location">
+
+                <label for="remark">Remark (Optional):</label>
+                <textarea id="remark" name="remark" rows="3"></textarea>
+
+                <button type="submit" class="submit-btn">Submit</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Data Table Container -->
+    <div class="data-table-container" id="tableContainer">
+        <h3 id="noDataMessage">Add some data to display.</h3>
+        <table id="dataTable" class="data-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Price</th>
+                    <th>Payment Method</th>
+                    <th>Location</th>
+                    <th>Remark</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Form data will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script src="scripts.js"></script>
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-analytics.js";
+      
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyBmBumYwibi2QWinQiOLZQWOxSVtYL5oXk",
+          authDomain: "form-c2f14.firebaseapp.com",
+          projectId: "form-c2f14",
+          storageBucket: "form-c2f14.firebasestorage.app",
+          messagingSenderId: "865004359404",
+          appId: "1:865004359404:web:ae4ff22f5e01018daddfc9",
+          measurementId: "G-SRTY1EM1JG"
+        };
+      
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+      
+        // Initialize Firestore
+        const db = getFirestore(app);
+      
+        // Function to format the date as DD-MM-YYYY
+        function formatDate(dateString) {
+          const date = new Date(dateString);
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+          const year = date.getFullYear();
+          return `${day}-${month}-${year}`;
+        }
+      
+        // Fetch and display data from Firestore when the page loads
+        async function fetchData() {
+          const querySnapshot = await getDocs(collection(db, "items"));
+          const tableBody = document.querySelector("#dataTable tbody");
+      
+          // Clear any existing rows in the table
+          tableBody.innerHTML = "";
+      
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const formattedDate = formatDate(data.date); // Format the date
+      
+            const newRow = tableBody.insertRow();
+            newRow.insertCell(0).innerHTML = formattedDate;            // Date (formatted)
+            newRow.insertCell(1).innerHTML = data.price;               // Price
+            newRow.insertCell(2).innerHTML = data.paymentMethod;       // Payment Method
+            newRow.insertCell(3).innerHTML = data.location;            // Location
+            newRow.insertCell(4).innerHTML = data.remark;              // Remark
+          });
+      
+          // Show the table and hide the "no data" message
+          document.getElementById("dataTable").style.display = "table";
+          document.getElementById("noDataMessage").style.display = "none";
+        }
+      
+        // Call fetchData on page load
+        window.onload = fetchData;
+      
+        // Handle form submission
+        document.getElementById('addForm').onsubmit = async function(event) {
+          event.preventDefault();
+          
+          // Get form data
+          const price = document.getElementById("price").value;
+          const paymentMethod = document.getElementById("payment").value;
+          const selectedDate = document.getElementById("selectDate").value;
+          const location = document.getElementById("location").value || "N/A"; // Default to "N/A" if empty
+          const remark = document.getElementById("remark").value || "N/A"; // Default to "N/A" if empty
+      
+          try {
+            // Add data to Firestore
+            const docRef = await addDoc(collection(db, "items"), {
+              price: price,
+              paymentMethod: paymentMethod,
+              date: selectedDate,
+              location: location,
+              remark: remark
+            });
+      
+            console.log("Document written with ID: ", docRef.id);
+      
+            // Optionally, you can update the UI or show a message to the user
+            alert("Data submitted successfully!");
+      
+            // Refresh the table by fetching the updated data
+            fetchData();
+      
+            // Close the modal
+            document.getElementById("formModal").style.display = "none";
+      
+            // Reset the form
+            document.getElementById("addForm").reset();
+          } catch (e) {
+            console.error("Error adding document: ", e);
+            alert("Error submitting data. Please try again.");
+          }
+        };
+      </script>
+      
+      
+</body>
+</html>
